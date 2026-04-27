@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crop Yield Predictor</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-hover: #45a049;
+            --bg-color: #1a1a2e;
+            --container-bg: rgba(255, 255, 255, 0.1);
+            --text-color: #ffffff;
+            --text-muted: #b0b0c0;
+            --input-bg: rgba(0, 0, 0, 0.2);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-color) 0%, #16213e 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+
+        .container {
+            background: var(--container-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            padding: 2.5rem;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+            font-weight: 300;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-color);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 0.85rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .result {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(76, 175, 80, 0.1);
+            border-left: 4px solid var(--primary);
+            border-radius: 4px;
+            font-size: 1.2rem;
+            text-align: center;
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border-left-color: var(--primary);
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>Crop Predictor</h1>
+        <p class="subtitle">AI-powered harvest estimation</p>
+
+        <form id="prediction-form">
+            <div class="form-group">
+                <label for="rainfall">Rainfall (mm)</label>
+                <input type="number" id="rainfall" step="0.1" required placeholder="e.g. 150.5">
+            </div>
+
+            <div class="form-group">
+                <label for="temperature">Temperature (°C)</label>
+                <input type="number" id="temperature" step="0.1" required placeholder="e.g. 25.4">
+            </div>
+
+            <div class="form-group">
+                <label for="humidity">Humidity (%)</label>
+                <input type="number" id="humidity" step="0.1" required placeholder="e.g. 60.0">
+            </div>
+
+            <div class="form-group">
+                <label for="soil_type">Soil Type</label>
+                <!-- 0: Clay, 1: Loamy, 2: Sandy based on LabelEncoder alphabetical sorting -->
+                <select id="soil_type" required>
+                    <option value="0">Clay</option>
+                    <option value="1">Loamy</option>
+                    <option value="2">Sandy</option>
+                </select>
+            </div>
+
+            <button type="submit">Predict Yield</button>
+        </form>
+
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+        </div>
+
+        <div class="result" id="result">
+            Estimated Yield: <strong id="yield-value"></strong> tonnes/ha
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('prediction-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const loader = document.getElementById('loader');
+            const resultDiv = document.getElementById('result');
+            const yieldValue = document.getElementById('yield-value');
+            const btn = document.querySelector('button');
+
+            // Hide previous result & show loader
+            resultDiv.style.display = 'none';
+            loader.style.display = 'block';
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+
+            const data = {
+                rainfall: parseFloat(document.getElementById('rainfall').value),
+                temperature: parseFloat(document.getElementById('temperature').value),
+                humidity: parseFloat(document.getElementById('humidity').value),
+                soil_type: parseInt(document.getElementById('soil_type').value)
+            };
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (!response.ok) throw new Error('Network response was not ok');
+
+                const result = await response.json();
+
+                // Show result
+                yieldValue.textContent = result.predicted_yield;
+                resultDiv.style.display = 'block';
+            } catch (error) {
+                alert('Failed to predict yield. Please try again.');
+                console.error('Error:', error);
+            } finally {
+                loader.style.display = 'none';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
+        });
+    </script>
+
+</body>
+
+</html>
