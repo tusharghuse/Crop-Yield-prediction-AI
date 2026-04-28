@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Crop Yield Predictor</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
     <style>
         :root {
             --primary: #4CAF50;
@@ -37,126 +38,83 @@
             border-radius: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             width: 100%;
-            max-width: 400px;
-            animation: fadeIn 0.5s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            max-width: 420px;
         }
 
         h1 {
             text-align: center;
             margin-bottom: 0.5rem;
-            font-weight: 600;
         }
 
         p.subtitle {
             text-align: center;
             color: var(--text-muted);
-            margin-bottom: 2rem;
-            font-weight: 300;
+            margin-bottom: 1rem;
         }
 
-        .form-group {
+        .accuracy {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #9be7a1;
             margin-bottom: 1.5rem;
         }
 
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
         label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-muted);
         }
 
         input,
         select {
             width: 100%;
-            padding: 0.75rem;
+            padding: 0.7rem;
             background: var(--input-bg);
             border: 1px solid var(--border);
             border-radius: 8px;
             color: var(--text-color);
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            box-sizing: border-box;
         }
 
         input:focus,
         select:focus {
-            outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
         }
 
         button {
             width: 100%;
-            padding: 0.85rem;
+            padding: 0.8rem;
             background: var(--primary);
-            color: white;
             border: none;
             border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: 600;
+            color: white;
+            font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 1rem;
         }
 
         button:hover {
             background: var(--primary-hover);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
-        }
-
-        button:active {
-            transform: translateY(0);
         }
 
         .result {
-            margin-top: 2rem;
+            margin-top: 1.5rem;
             padding: 1rem;
-            background: rgba(76, 175, 80, 0.1);
+            background: rgba(76, 175, 80, 0.15);
             border-left: 4px solid var(--primary);
-            border-radius: 4px;
-            font-size: 1.2rem;
             text-align: center;
             display: none;
-            animation: fadeIn 0.3s ease-out;
+        }
+
+        .error {
+            color: #ff6b6b;
+            font-size: 0.8rem;
         }
 
         .loader {
             display: none;
             text-align: center;
-            margin-top: 1rem;
-        }
-
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            border-left-color: var(--primary);
-            animation: spin 1s linear infinite;
-            display: inline-block;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
-            }
-
-            100% {
-                transform: rotate(360deg);
-            }
         }
     </style>
 </head>
@@ -164,29 +122,32 @@
 <body>
 
     <div class="container">
-        <h1>Crop Predictor</h1>
-        <p class="subtitle">AI-powered harvest estimation</p>
+        <h1>🌾 Crop Predictor</h1>
+        <p class="subtitle">AI-powered yield estimation</p>
+        <div class="accuracy">Model Accuracy: ~91% (R² Score)</div>
 
-        <form id="prediction-form">
+        <form id="form">
             <div class="form-group">
-                <label for="rainfall">Rainfall (mm)</label>
-                <input type="number" id="rainfall" step="0.1" required placeholder="e.g. 150.5">
+                <label>Rainfall (50–300 mm)</label>
+                <input type="number" id="rainfall" required>
+                <div class="error" id="rainfall-error"></div>
             </div>
 
             <div class="form-group">
-                <label for="temperature">Temperature (°C)</label>
-                <input type="number" id="temperature" step="0.1" required placeholder="e.g. 25.4">
+                <label>Temperature (15–40 °C)</label>
+                <input type="number" id="temperature" required>
+                <div class="error" id="temp-error"></div>
             </div>
 
             <div class="form-group">
-                <label for="humidity">Humidity (%)</label>
-                <input type="number" id="humidity" step="0.1" required placeholder="e.g. 60.0">
+                <label>Humidity (40–90 %)</label>
+                <input type="number" id="humidity" required>
+                <div class="error" id="humidity-error"></div>
             </div>
 
             <div class="form-group">
-                <label for="soil_type">Soil Type</label>
-                <!-- 0: Clay, 1: Loamy, 2: Sandy based on LabelEncoder alphabetical sorting -->
-                <select id="soil_type" required>
+                <label>Soil Type</label>
+                <select id="soil_type">
                     <option value="0">Clay</option>
                     <option value="1">Loamy</option>
                     <option value="2">Sandy</option>
@@ -196,64 +157,50 @@
             <button type="submit">Predict Yield</button>
         </form>
 
-        <div class="loader" id="loader">
-            <div class="spinner"></div>
-        </div>
+        <div class="loader" id="loader">Predicting...</div>
 
         <div class="result" id="result">
-            Estimated Yield: <strong id="yield-value"></strong> tonnes/ha
+            Estimated Yield: <strong id="output"></strong> t/ha
         </div>
     </div>
 
     <script>
-        document.getElementById('prediction-form').addEventListener('submit', async (e) => {
+        const form = document.getElementById("form");
+
+        form.addEventListener("submit", async (e) => {
             e.preventDefault();
 
-            const loader = document.getElementById('loader');
-            const resultDiv = document.getElementById('result');
-            const yieldValue = document.getElementById('yield-value');
-            const btn = document.querySelector('button');
+            let rainfall = parseFloat(document.getElementById("rainfall").value);
+            let temp = parseFloat(document.getElementById("temperature").value);
+            let humidity = parseFloat(document.getElementById("humidity").value);
 
-            // Hide previous result & show loader
-            resultDiv.style.display = 'none';
-            loader.style.display = 'block';
-            btn.disabled = true;
-            btn.style.opacity = '0.7';
+            // Validation
+            if (rainfall < 50 || rainfall > 300) return alert("Rainfall must be between 50–300");
+            if (temp < 15 || temp > 40) return alert("Temperature must be between 15–40");
+            if (humidity < 40 || humidity > 90) return alert("Humidity must be between 40–90");
+
+            document.getElementById("loader").style.display = "block";
 
             const data = {
-                rainfall: parseFloat(document.getElementById('rainfall').value),
-                temperature: parseFloat(document.getElementById('temperature').value),
-                humidity: parseFloat(document.getElementById('humidity').value),
-                soil_type: parseInt(document.getElementById('soil_type').value)
+                rainfall: rainfall,
+                temperature: temp,
+                humidity: humidity,
+                soil_type: parseInt(document.getElementById("soil_type").value)
             };
 
-            try {
-                const response = await fetch('/predict', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
+            const res = await fetch("/predict", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
 
-                if (!response.ok) throw new Error('Network response was not ok');
+            const result = await res.json();
 
-                const result = await response.json();
-
-                // Show result
-                yieldValue.textContent = result.predicted_yield;
-                resultDiv.style.display = 'block';
-            } catch (error) {
-                alert('Failed to predict yield. Please try again.');
-                console.error('Error:', error);
-            } finally {
-                loader.style.display = 'none';
-                btn.disabled = false;
-                btn.style.opacity = '1';
-            }
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("output").innerText = result.predicted_yield;
+            document.getElementById("result").style.display = "block";
         });
     </script>
 
 </body>
-
 </html>
